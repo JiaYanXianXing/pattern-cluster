@@ -4,6 +4,7 @@ from KMP import kmp_search
 import time
 class clip:
     def __init__(self, image):
+        self.p_image = image
         self.image = image
         self.get_str()
         self.get_pattarn()
@@ -82,7 +83,8 @@ class clip:
         self.str1.reverse()
         self.str2.reverse()
 
-data = np.load('4.npy')
+data = np.load('2.npy')
+
 
 clusters = {}
 cluster_num = 0
@@ -90,34 +92,46 @@ cluster_num = 0
 start_time = time.time()
 creat_time = 0
 
+pre_cluster = {}
+clips = []
 for i,image in enumerate(data):
     print(i)
-    cr_s = time.time()
     if image.sum() == 0:
+        clips.append(0)
         continue
+
+
+    cr_s = time.time()
     c = clip(image)
     cr_e = time.time()
     creat_time += cr_e - cr_s
+    clips.append(c)
 
-    match = False
-    for center in clusters.keys():
 
-        c1 = clusters[center][0]
+    x,y = min(len(c.str1),len(c.str2)),max(len(c.str1),len(c.str2))
+    if (x,y) in pre_cluster.keys():
+        pre_cluster[(x,y)].append(i)
+    else:
+        pre_cluster[(x,y)] = [i]
 
-        if len(c.str) > len(c1.str):
-            if kmp_search(c.pattarn0,c1.str) or kmp_search(c.pattarn1,c1.str):
-                clusters[center].append(c)
+
+for i in pre_cluster.keys():
+    cluter_cache = {}
+    for j in pre_cluster[i]:
+        match = False
+        for t in cluter_cache.keys():
+            if kmp_search(t[0],clips[j].str) or kmp_search(t[1],clips[j].str):
                 match = True
+                cluter_cache[t].append(j)
                 break
-        else:
-            if kmp_search(c1.pattarn0,c.str) or kmp_search(c1.pattarn1,c.str):
-                clusters[center].append(c)
-                match = True
-                break
-    if match == False:
-        new_center = cluster_num
-        cluster_num += 1
-        clusters[new_center] = [c]
+        if match == False:
+            t = (tuple(clips[j].pattarn0),tuple(clips[j].pattarn1))
+            cluter_cache[t] = [j]
+    clusters.update(cluter_cache)
+
+
+
+
 end_time = time.time()
 print('clusters num:',str(len(clusters.keys())))
 print('total time:')
@@ -126,9 +140,11 @@ print('creat time:')
 print(creat_time)
 print('cluster time')
 print(end_time - start_time-creat_time)
-for i in clusters.keys():
-    for j in range(len(clusters[i])):
-        plt.imsave('out1/'+str(i)+'.'+str(j)+'.png', clusters[i][j].image)
+print('cluster num:')
+print(len(clusters.keys()))
+for j,i in enumerate(clusters.keys()):
+    for index in range(len(clusters[i])):
+        plt.imsave('out1/' + str(j) + '.' + str(index) + '.png',clips[clusters[i][index]].p_image)
 
 
 
